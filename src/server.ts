@@ -15,10 +15,8 @@ export const createSupabaseClient = (accessToken: string) => {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      accessToken: async () => {
+        return accessToken;
       },
     }
   )
@@ -61,7 +59,7 @@ const server = new Server({
         const row = await supabase.from('documents')
           .select('*')
           .eq('id', documentName)
-          .eq('user_id', context.userId)
+          .eq('owner', context.userId)
 
         return (row.data.length > 0 && row.data[0].blob)
           ? Buffer.from(row.data[0].blob.slice(2), 'hex')
@@ -76,7 +74,7 @@ const server = new Server({
             blob: '\\x' + state.toString('hex'),
           })
           .eq('id', documentName)
-          .eq('user_id', context.userId)
+          .eq('owner', context.userId)
       }
     })
   ]
