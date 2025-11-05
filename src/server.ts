@@ -59,7 +59,7 @@ const server = new Server({
         const row = await supabase.from('documents')
           .select('*')
           .eq('id', documentName)
-          .eq('owner', context.userId)
+          .throwOnError();
 
         return (row.data.length > 0 && row.data[0].blob)
           ? Buffer.from(row.data[0].blob.slice(2), 'hex')
@@ -74,7 +74,7 @@ const server = new Server({
             blob: '\\x' + state.toString('hex'),
           })
           .eq('id', documentName)
-          .eq('owner', context.userId)
+          .throwOnError();
       }
     })
   ]
