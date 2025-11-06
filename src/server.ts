@@ -29,22 +29,43 @@ const server = new Server({
   async onAuthenticate(data: onAuthenticatePayload): Promise<any> {
     const { token } = data;
 
-    try {
-      const userJwt = jose.decodeJwt(token);
-      const {
-        sub: userId,
-        email: email,
-      } = userJwt;
+    const userJwt = jose.decodeJwt(token);
+    const {
+      sub: userId,
+      email: email,
+    } = userJwt;
 
-      // You can set contextual data to use it in other hooks
-      return {
-        userId,
-        email,
-        token
-      };
-    } catch (error) {
+    const supabase = createSupabaseClient(token);
 
+    const { data: [grants] } = await supabase
+      .rpc('get_user_document_permissions', { document_id: data.documentName })
+      .throwOnError();
+
+    const { data: ownerRes } = await supabase.from('documents')
+      .select('owner')
+      .eq('id', data.documentName)
+      .maybeSingle()
+      .throwOnError();
+
+    // User cannot see the document at all (restricted by RLS). They are not authorized
+    if (!ownerRes) {
+      throw new Error('User is not authorized to see this document')
     }
+
+    if (!grants.read && userId !== ownerRes.owner) {
+      throw new Error('User is not authorized to see this document')
+    }
+
+    if (!grants.write && userId !== ownerRes.owner) {
+      data.connectionConfig.readOnly = true;
+    }
+
+    // You can set contextual data to use it in other hooks
+    return {
+      userId,
+      email,
+      token
+    };
   },
 
   async onConnect(data: onConnectPayload): Promise<void> {
