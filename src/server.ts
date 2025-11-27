@@ -93,6 +93,7 @@ const server = new Server({
         await supabase.from('documents')
           .update({
             blob: '\\x' + state.toString('hex'),
+            updated_at: new Date().toISOString(),
           })
           .eq('id', documentName)
           .throwOnError();
